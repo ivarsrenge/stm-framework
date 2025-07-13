@@ -11,7 +11,21 @@
 
 #ifdef USING_FILESYSTEM
 #include "string.h"
-#include "stm32f3xx.h"
+
+#pragma once
+
+/* pick the right STM32 family header, based on the part-number
+   macro your toolchain (or CubeMX/CubeIDE) defines: */
+#if defined(STM32F3)
+  #include "stm32f3xx.h"
+#elif defined(STM32F7)
+    #include "stm32f7xx.h"
+	#define FLASH_PAGE_SIZE 	128 * 1024
+
+#else
+  #error "Unsupported STM32 family"
+#endif
+
 
 
 
@@ -226,6 +240,8 @@ uint8_t fsPrintUsage(char* param) {
 
 void fsFormat(char* param)
 {
+#if defined(STM32F3)
+
     FLASH_EraseInitTypeDef eraseInit = {0};
     uint32_t pageError = 0;
 
@@ -253,6 +269,9 @@ void fsFormat(char* param)
     }
 
     HAL_FLASH_Lock();
+#else
+    printf("No formatting for your device yet\n");
+#endif
 }
 
 // long execution time
@@ -349,7 +368,8 @@ int fsDelete(char *name) {
             return 3;
 
         // Clear stale flags, unlock, wait for BUSY to clear
-        FLASH->SR = FLASH_SR_PGERR | FLASH_SR_WRPERR | FLASH_SR_EOP;
+        //FLASH->SR = FLASH_SR_PGERR | FLASH_SR_WRPERR | FLASH_SR_EOP;
+
         HAL_FLASH_Unlock();
         while (__HAL_FLASH_GET_FLAG(FLASH_FLAG_BSY)) {}
 
