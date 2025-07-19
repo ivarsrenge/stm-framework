@@ -29,7 +29,8 @@ void onBoot() {
 	usTimerInit();
 
 	taskQueue.next = NULL;
-	exec("BOOT",&onBeforeLoad);
+	onBeforeLoad(0);
+
 
 	// libs
 #ifdef USING_USB
@@ -59,8 +60,14 @@ void onBoot() {
 	after("FS_INIT", timing+=10, &fsInit);
 #endif
 
+#ifdef USING_TCP
+	after("TCP_INIT", timing+=10, &tcpInit);
+#endif
+
 	after("LOAD",timing+=10, &onLoad);
-	while (1==1) kernel_process(0);
+	while (1==1) {
+		kernel_process(0);
+	}
 }
 
 __attribute__((weak))  void onLoad(uint32_t param) {

@@ -37,6 +37,10 @@
 	#include "buttons.h"
 #endif
 
+#ifdef USING_TCP
+	#include "tcp.h"
+#endif
+
 
 	#define TASK_TIMEOUT  1000  // how long is allowed the task to execute - MICROSECONDS, 1ms by default
 	#define TASK_REALTIME_FAIL ST_MS * 3 // how long is allowed to shift from realtime

@@ -7,7 +7,7 @@
  *
  *  Usage:
  *    1. In your main header or before including this, do:
- *         #define USING_UART huart1
+ *         #define USING_UART huart1*
  *    2. Include this file:
  *         #include "uart.h"
  *    3. In your MX_USARTx_UART_Init (or right after), start RX-IT:
@@ -17,6 +17,8 @@
  *             uartReceiveBuffer(&uart_rx_byte, 1);
  *             HAL_UART_Receive_IT(&USING_UART, &uart_rx_byte, 1);
  *         #endif
+ *
+ *    USING_UART_DMA hdma_usart2_tx will allow faster output
  */
 
 #ifndef SYS_UART_H_

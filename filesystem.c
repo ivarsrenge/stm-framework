@@ -57,6 +57,10 @@ void fsInit() {
 void fsTest(char* param) {
     const char* filename = "testfile";
     size_t size = CHUNK_PAYLOAD_SIZE * 3;
+
+    printf("Starting fs test\n");
+    kernel_process(1);
+
     char* testData = malloc(size);
     if (!testData) {
         setTextColor(RED);
@@ -350,7 +354,7 @@ int fsDelete(char *name) {
         return 2;  // not found
 
     FsChunk chk;
-    while (addr != FS_INVALID_ADDR) {
+    while ((addr != FS_INVALID_ADDR) && (addr > 0)) {
         memcpy(&chk, (void*)addr, sizeof(chk));
 
 
@@ -554,6 +558,7 @@ int fsWriteBinary(char *name, char *data, int size) {
         prev_addr  = chunk_addr;
         ptr       += chunk_len;
         remaining -= chunk_len;
+        kernel_process(1);
     }
 
     return 0;

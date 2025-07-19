@@ -16,6 +16,7 @@ char            uart_ring_buf[UART_RING_BUFFER_SIZE];
 
 char             cmd[UART_CMD_BUFFER_SIZE];
 volatile uint8_t cmdLoaded = 0;
+char uartLoaded = 0;
 
 // simple one-byte rx
 static uint8_t uart_rx_byte;
@@ -51,6 +52,7 @@ void uartTxProcessor(uint32_t param) {
 #endif
 
 void uartStartTx(void) {
+#ifdef USING_UART_DMA
     // 1) only start if DMA is idle and there's data
     if (HAL_DMA_GetState(&USING_UART_DMA) != HAL_DMA_STATE_READY) return;
     if (tx_head == tx_tail) return;
@@ -61,6 +63,7 @@ void uartStartTx(void) {
     // 3) remember length and kick off DMA
     tx_dma_len = len;
     HAL_UART_Transmit_DMA(&USING_UART, &tx_buf[tx_tail], len);
+#endif
 }
 
 // DMA transmit complete callback
@@ -98,9 +101,12 @@ void uartInit(uint32_t msg) {
     proc = repeat("UART_T_PR", UART_TXPROC_SPEED, &uartTxProcessor);
     proc->timeout = 1000 * ST_SS;
     proc->realtime_fail = ST_SEC;
-    printf("uart loaded, msg=0x%08lX\n", msg);
+    uartLoaded = 1;
+    printf("uart loaded\n");
+#else
+    uartLoaded = 1;
+    printf("uart DMA loaded\n");
 #endif
-//    USING_UART->RxEventCallback = uartReceiveCallback;
 }
 
 // push incoming data into ring buffer
@@ -172,7 +178,8 @@ int _write(int file, char *data, int len) {
 	  tx_head = next;
 	}
 	__enable_irq();
-	uartStartTx();
+
+	if (uartLoaded) uartStartTx();
 	return len;
 }
 

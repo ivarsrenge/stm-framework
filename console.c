@@ -189,10 +189,14 @@ void consoleAbout(char* args) {
 void consoleHelp(char* args) {
 	consoleCmd* current = consoleCmdList;
 	printf("Registered console commands:\n");
+	int cnt = 0;
 	while (current) {
-		printf(" - %s @ %p\n", current->name, (void*)current->handler);
+		printf(" -%s (%p)\n", current->name, (void*)current->handler); //
 		current = current->next;
+		cnt++;
+		kernel_process(1);
 	}
+	printf("Total (%i)\n", cnt);
 	return;
 }
 
