@@ -26,6 +26,7 @@ void consoleInit(uint32_t msg) {
 	printf("console loaded\n");
 }
 
+#ifdef USING_RICH_CONSOLE
 // Moves the cursor to column x, row y (1-based coordinates)
 void gotoxy(int x, int y) {
     printf("\x1B[%d;%dH", y, x);
@@ -35,23 +36,29 @@ void gotoxy(int x, int y) {
 void cls(void) {
     printf("\x1B[2J\x1B[H");
 }
+#endif
 
 // Sets the text (foreground) color; pass one of ConsoleColor
 void setTextColor(enum ConsoleColor color) {
     // DEFAULT_COLOR maps to CSI 39
+#ifdef USING_RICH_CONSOLE
     int code = (color == DEFAULT_COLOR) ? 39 : (30 + color);
     printf("\x1B[%dm", code);
+#endif
 }
 
 // Sets the background color; pass one of ConsoleColor
 void setBackgroundColor(enum ConsoleColor color) {
-    // DEFAULT_COLOR maps to CSI 49
+#ifdef USING_RICH_CONSOLE
+	// DEFAULT_COLOR maps to CSI 49
     int code = (color == DEFAULT_COLOR) ? 49 : (40 + color);
     printf("\x1B[%dm", code);
+#endif
 }
 
 // Draws a rectangular frame at (x,y) with width w and height h
 // Uses '+' for corners, '-' for horizontal edges, '|' for vertical edges
+#ifdef USING_RICH_CONSOLE
 void drawFrame(int x, int y, int w, int h) {
     if (w < 2 || h < 2) return; // need at least space for corners
 
@@ -101,6 +108,7 @@ void resetTerminal(void) {
     fflush(stdout);
 #endif
 }
+#endif
 
 
 void consoleRegister(char* name, consoleCmdHandler handler) {
@@ -115,7 +123,9 @@ void consoleRegister(char* name, consoleCmdHandler handler) {
 
 __attribute__((weak))  uint8_t onCustomCommand(char* command) {
 	// to handle this, place on user file
-	printf("\x1b[31mconsole error> Unknown command %s\x1b[0m\n", command);
+	setTextColor(RED);
+	printf("console error> Unknown command %s\n", command);
+	setTextColor(DEFAULT_COLOR);
 }
 
 
@@ -146,7 +156,7 @@ uint8_t onCommand(uint32_t param) {
 void consoleAbout(char* args) {
     uint32_t t = uwTick / ST_SEC;
 
-    cls();
+#ifdef USING_RICH_CONSOLE
 	setTextColor(WHITE);
 	setBackgroundColor(BLUE);
 	fillFrame(5, 3, 40, 10);
@@ -166,6 +176,12 @@ void consoleAbout(char* args) {
     gotoxy(7, 9);
     printf("Type 'help' for commands.\n\x1b[0m");
 	resetTerminal();
+#else
+    printf("About\n");
+    printf("Firmware: %s\n", FIRMWARE_VERSION);
+    printf("Build: %s %s\n", __DATE__, __TIME__);
+    printf("USING_RICH_CONSOLE not defined\n");
+#endif
 
 }
 

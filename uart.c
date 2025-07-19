@@ -8,7 +8,6 @@
 
 #ifdef USING_UART
 
-extern UART_HandleTypeDef  USING_UART;  // e.g. huart1
 
 // ring buffer state
 volatile uint16_t ring_head = 0;
@@ -21,11 +20,61 @@ volatile uint8_t cmdLoaded = 0;
 // simple one-byte rx
 static uint8_t uart_rx_byte;
 
-/*
-void uartReceiveCallback(UART_HandleTypeDef *huart,uint16_t size) {
 
-}*/
+extern UART_HandleTypeDef  USING_UART;  // e.g. huart1
+extern DMA_HandleTypeDef   USING_UART_DMA;    // e.g. hdma_usart1_tx
 
+// transmit buffer
+#define TX_DMA_BUFFER_SIZE   1024
+static uint16_t tx_dma_len = 0;
+static uint8_t tx_buf[TX_DMA_BUFFER_SIZE];
+static volatile uint16_t tx_head = 0;
+static volatile uint16_t tx_tail = 0;
+
+// Kick off DMA from buffer tail to head
+#ifndef USING_UART_DMA
+void uartTxProcessor(uint32_t param) {
+	char queue[1];
+	  // empty if head == tail
+	    if (tx_head == tx_tail) {
+	        return;
+	    }
+
+	    __disable_irq();               // protect concurrent access
+	    queue[0] = tx_buf[tx_tail];
+	    HAL_UART_Transmit(&USING_UART, queue, 1, 100);
+	    tx_tail = (tx_tail + 1) % TX_DMA_BUFFER_SIZE;
+	    __enable_irq();
+	    kernel_process(1);
+	    return;
+}
+#endif
+
+void uartStartTx(void) {
+    // 1) only start if DMA is idle and there's data
+    if (HAL_DMA_GetState(&USING_UART_DMA) != HAL_DMA_STATE_READY) return;
+    if (tx_head == tx_tail) return;
+
+    // 2) calculate contiguous chunk
+    uint16_t len = (tx_head > tx_tail) ? (tx_head - tx_tail) : (TX_DMA_BUFFER_SIZE - tx_tail);
+
+    // 3) remember length and kick off DMA
+    tx_dma_len = len;
+    HAL_UART_Transmit_DMA(&USING_UART, &tx_buf[tx_tail], len);
+}
+
+// DMA transmit complete callback
+#ifdef USING_UART_DMA
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart != &USING_UART) return;
+
+    // 4) advance tail by exactly what we sent
+    tx_tail = (tx_tail + tx_dma_len) % TX_DMA_BUFFER_SIZE;
+
+    // 5) start next chunk, if any
+    uartStartTx();
+}
+#endif
 
 // in stm32xx_it.c
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
@@ -40,11 +89,17 @@ void uartInit(uint32_t msg) {
     // prime the RX interrupt (should already be set once in MX_..._Init)
     HAL_UART_Receive_IT(&USING_UART, &uart_rx_byte, 1);
     // spawn the processor task
-    tTask* proc = repeat("UART_PROC", UART_PROCESSOR_SPEED, &uartProcessor);
+
+    tTask* proc = repeat("UART_R_PR", UART_RXPROC_SPEED, &uartRxProcessor);
     proc->timeout = 1000 * ST_SS * 30;
     proc->realtime_fail = ST_SEC;
-    printf("uart loaded, msg=0x%08lX\n", msg);
 
+#ifndef USING_UART_DMA
+    proc = repeat("UART_T_PR", UART_TXPROC_SPEED, &uartTxProcessor);
+    proc->timeout = 1000 * ST_SS;
+    proc->realtime_fail = ST_SEC;
+    printf("uart loaded, msg=0x%08lX\n", msg);
+#endif
 //    USING_UART->RxEventCallback = uartReceiveCallback;
 }
 
@@ -62,7 +117,7 @@ void uartReceiveBuffer(uint8_t* data, uint16_t len) {
 }
 
 // parse CR/LF-terminated commands, exec them
-void uartProcessor(uint32_t param) {
+void uartRxProcessor(uint32_t param) {
     static char local[UART_CMD_BUFFER_SIZE];
     static uint16_t idx = 0;
     char name[TASK_NAME_LENGTH+1];
@@ -90,42 +145,38 @@ void uartProcessor(uint32_t param) {
 }
 
 __attribute__((weak)) uint8_t onCommand(uint32_t param) {
-    printf("\x1b[32muart> %s\x1b[0m\n", cmd);
+	setTextColor(YELLOW);
+    printf("uart> %s\n", cmd);
+	setTextColor(DEFAULT_COLOR);
     return 0;
 }
 
 __attribute__((weak)) void onUartError(uint32_t flag) {
-    printf("\x1b[31mUart Error %u\x1b[0m\n", flag);
+	setTextColor(RED);
+    printf("Uart Error %u\n", flag);
+	setTextColor(DEFAULT_COLOR);
 }
 
-int uartCanWrite(void) {
-    HAL_UART_StateTypeDef st = HAL_UART_GetState(&USING_UART);
-    return (st != HAL_UART_STATE_BUSY_TX    // 0x21
-         && st != HAL_UART_STATE_BUSY_TX_RX // 0x23
-         && st != HAL_UART_STATE_BUSY);     // 0x24
-}
 
-// _write() override for printf() et al.  Kicks off an interrupt-driven send
-// if the UART is idle.  Returns “len” on success, 0 otherwise.
 int _write(int file, char *data, int len) {
-    if (!uartCanWrite()) {
-        return 0;  // still busy transmitting previous data
-    }
-    // start TX in interrupt mode; HAL will clear BUSY_TX in its TxCpltCallback
-    if (HAL_UART_Transmit_IT(&USING_UART, (uint8_t*)data, len) == HAL_OK) {
-        return len;
-    }
-    return 0;
+	uint16_t i;
+	__disable_irq(); // protect head/tail
+	for (i = 0; i < len; i++) {
+	  uint16_t next = (tx_head + 1) % TX_DMA_BUFFER_SIZE;
+	  if (next == tx_tail) {
+		  __enable_irq();
+		  uartStartTx();
+		  return UART_OVERFLOW;
+	  }
+	  tx_buf[tx_head] = data[i];
+	  tx_head = next;
+	}
+	__enable_irq();
+	uartStartTx();
+	return len;
 }
 
-//-----------------------------------------------------------------------------
-// Make sure you have this in your IRQ/Callback file so the HAL will
-// unlock the UART and set gState = READY when the transfer finishes:
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart == &USING_UART) {
-        // nothing to do here—the HAL core calls __HAL_UNLOCK() which sets
-        // huart->gState = HAL_UART_STATE_READY for you.
-    }
-}
+
+
 
 #endif /* USING_UART */

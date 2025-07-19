@@ -29,7 +29,8 @@
 //#include "main.h"      // for extern UART_HandleTypeDef huart1, etc.
 
 #define UART_OVERFLOW           1    // ring-buffer overflow
-#define UART_PROCESSOR_SPEED    ST_MS
+#define UART_RXPROC_SPEED       ST_MS
+#define UART_TXPROC_SPEED    	ST_MS
 #define UART_CMD_BUFFER_SIZE    128
 #define UART_RING_BUFFER_SIZE   128
 
@@ -46,7 +47,8 @@ extern volatile uint8_t    cmdLoaded;
 void    uartInit(uint32_t msg);
 
 // spawnable task that parses CR/LF-terminated commands
-void    uartProcessor(uint32_t param);
+void    uartRxProcessor(uint32_t param);
+void    uartTxProcessor(uint32_t param);
 
 // called from IRQ callback to push incoming bytes
 void    uartReceiveBuffer(uint8_t* data, uint16_t len);
