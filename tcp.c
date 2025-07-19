@@ -5,7 +5,11 @@
  *      Author: User
  */
 
-#include "uart.h"
+
+
+
+#ifdef USING_TCP
+#include "tcp.h"
 #include "console.h"
 #include "lwip/netif.h"
 #include "lwip/ip_addr.h"
@@ -17,10 +21,6 @@
 #include <stdio.h>
 #include "lwip/ip4_addr.h"   // for IP4_ADDR
 #include "lwip/tcp.h"
-
-
-#ifdef USING_TCP
-
  // http_client.c
 
  // bring in your netif to wait for link/up

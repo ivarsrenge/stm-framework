@@ -54,10 +54,6 @@ Your main file should:
 
 onBoot(); in your initial main.c file
 
-while (1) {
-    onLoop();    
-}
-
 Your main.h file should contain
 
 #define FIRMWARE_VERSION "Test Application 1.0"
