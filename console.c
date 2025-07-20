@@ -10,33 +10,145 @@
 
 #ifdef USING_CONSOLE
 
-static consoleCmd* consoleCmdList = NULL;
-
-void consoleInit(uint32_t msg) {
-	consoleRegister("about", &consoleAbout);
-	consoleRegister("help", &consoleHelp);
-	consoleRegister("taskreset", &consoleTasksReset);
-	consoleRegister("tasks", &consoleTasks);
-	consoleRegister("on", &consoleOn);
-	consoleRegister("off", &consoleOff);
-
-
-	consoleAbout(NULL);
-
-	printf("console loaded\n");
-}
 
 #ifdef USING_RICH_CONSOLE
-// Moves the cursor to column x, row y (1-based coordinates)
-void gotoxy(int x, int y) {
-    printf("\x1B[%d;%dH", y, x);
-}
 
-// Clears the screen and moves cursor to home (1,1)
-void cls(void) {
-    printf("\x1B[2J\x1B[H");
-}
+	static consoleApp *appList = NULL;
+
+	void monitorAppDraw() {
+		printf("--- < App > ---");
+	}
+
+	void consoleGui(char* name) {
+		//consoleAppRegister("monitor", monitorAppDraw,  5,  5, 50, 20);
+		consoleAppRegister("Test", monitorAppDraw, 5, 5, 50, 20, WHITE, BLUE);
+	}
+
+
+	static void drawAppWindow(const consoleApp *a) {
+	    // 1) fill background
+	    setBackgroundColor(a->bg);
+	   // for (int row = 0; row < a->h; ++row) {
+	    //    gotoxy(a->x, a->y + row);
+	    //    for (int col = 0; col < a->w; ++col) putchar(' ');
+	    //}
+
+	    // 2) draw frame (borders) in fg
+	    setBackgroundColor(a->bg);
+	    setTextColor(a->fg);
+	    drawFrame(a->x, a->y, a->w, a->h);
+
+	    // 3) call the app’s content
+	    gotoxy(a->x + 1, a->y + 1);
+	    a->onDraw();
+
+	    // 4) reset to default colors for next draws
+	    setTextColor(DEFAULT_COLOR);
+	    setBackgroundColor(DEFAULT_COLOR);
+	    printf("\n");
+	}
+
+
+	void  consoleAppDrawAll(uint32_t par) {
+		consoleApp *a = appList;
+
+		if (!a) return;
+
+		cls();
+
+		while (a) {
+			if (a->visible) {
+				drawAppWindow(a);
+			}
+			a = a->next;
+		}
+
+
+	}
+
+
+	void 	 consoleAppRegister(char *name, void (*onDraw)(int x, int y), uint8_t x, uint8_t y, uint8_t w, uint8_t h, enum ConsoleColor fg, enum ConsoleColor bg) {
+	    consoleApp* app = malloc(sizeof(consoleApp));
+	    if (!app) return;
+
+	    *app = (consoleApp){ .name = name,
+	                           .onDraw = onDraw,
+	                           .x = x, .y = y,
+	                           .w = w, .h = h,
+	                           .fg = fg, .bg = bg,
+	                           .visible = 1,
+	                           .next = appList };
+
+	    appList = app;
+
+	}
+
+
+	// Moves the cursor to column x, row y (1-based coordinates)
+	void gotoxy(int x, int y) {
+	    printf("\x1B[%d;%dH", y, x);
+	}
+
+	// Clears the screen and moves cursor to home (1,1)
+	void cls(void) {
+	    printf("\x1B[2J\x1B[H");
+	}
+
+	// Draws a rectangular frame at (x,y) with width w and height h
+	// Uses '+' for corners, '-' for horizontal edges, '|' for vertical edges
+	void drawFrame(int x, int y, int w, int h) {
+	    if (w < 2 || h < 2) return; // need at least space for corners
+
+	    // Top edge
+	    gotoxy(x, y);
+	    putchar('+');
+	    for (int i = 0; i < w - 2; ++i) putchar('-');
+	    putchar('+');
+
+	    // Sides
+	    for (int row = 1; row < h - 1; ++row) {
+	        gotoxy(x, y + row);
+	        putchar('|');
+	        gotoxy(x + w - 1, y + row);
+	        putchar('|');
+	    }
+
+	    // Bottom edge
+	    gotoxy(x, y + h - 1);
+	    putchar('+');
+	    for (int i = 0; i < w - 2; ++i) putchar('-');
+	    putchar('+');
+	}
+
+	// Fills a rectangular area at (x,y) with width w and height h
+	void fillFrame(int x, int y, int w, int h) {
+	    if (w < 1 || h < 1) return;
+	    for (int row = 0; row < h; ++row) {
+	        gotoxy(x, y + row);
+	        for (int col = 0; col < w; ++col) {
+	            putchar(' ');
+	        }
+	    }
+	}
+
+	// Resets terminal: clears formatting and moves cursor to bottom of window
+	void resetTerminal(void) {
+	    // Reset colors and attributes
+	    printf("\x1B[0m");
+	    // Ensure cursor is visible
+	    printf("\x1B[?25h");
+	    // Move cursor far down (clamped to bottom)
+	    printf("\x1B[999;1H");
+
+	#ifdef USING_USB
+	    fflush(stdout);
+	#endif
+	}
+
+
 #endif
+
+
 
 // Sets the text (foreground) color; pass one of ConsoleColor
 void setTextColor(enum ConsoleColor color) {
@@ -56,59 +168,30 @@ void setBackgroundColor(enum ConsoleColor color) {
 #endif
 }
 
-// Draws a rectangular frame at (x,y) with width w and height h
-// Uses '+' for corners, '-' for horizontal edges, '|' for vertical edges
+
+
+
+static consoleCmd* consoleCmdList = NULL;
+
+void consoleInit(uint32_t msg) {
+	consoleRegister("about", &consoleAbout);
+	consoleRegister("gui", &consoleGui);
+	consoleRegister("help", &consoleHelp);
+	consoleRegister("taskreset", &consoleTasksReset);
+	consoleRegister("tasks", &consoleTasks);
+	consoleRegister("on", &consoleOn);
+	consoleRegister("off", &consoleOff);
+
+
+	consoleAbout(NULL);
+
+	printf("console loaded\n");
+
 #ifdef USING_RICH_CONSOLE
-void drawFrame(int x, int y, int w, int h) {
-    if (w < 2 || h < 2) return; // need at least space for corners
-
-    // Top edge
-    gotoxy(x, y);
-    putchar('+');
-    for (int i = 0; i < w - 2; ++i) putchar('-');
-    putchar('+');
-
-    // Sides
-    for (int row = 1; row < h - 1; ++row) {
-        gotoxy(x, y + row);
-        putchar('|');
-        gotoxy(x + w - 1, y + row);
-        putchar('|');
-    }
-
-    // Bottom edge
-    gotoxy(x, y + h - 1);
-    putchar('+');
-    for (int i = 0; i < w - 2; ++i) putchar('-');
-    putchar('+');
-}
-
-// Fills a rectangular area at (x,y) with width w and height h
-void fillFrame(int x, int y, int w, int h) {
-    if (w < 1 || h < 1) return;
-    for (int row = 0; row < h; ++row) {
-        gotoxy(x, y + row);
-        for (int col = 0; col < w; ++col) {
-            putchar(' ');
-        }
-    }
-}
-
-
-// Resets terminal: clears formatting and moves cursor to bottom of window
-void resetTerminal(void) {
-    // Reset colors and attributes
-    printf("\x1B[0m");
-    // Ensure cursor is visible
-    printf("\x1B[?25h");
-    // Move cursor far down (clamped to bottom)
-    printf("\x1B[999;1H");
-
-#ifdef USING_USB
-    fflush(stdout);
+	repeat("GUI", ST_SEC, &consoleAppDrawAll);
 #endif
 }
-#endif
+
 
 
 void consoleRegister(char* name, consoleCmdHandler handler) {

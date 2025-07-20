@@ -26,7 +26,6 @@ extern UART_HandleTypeDef  USING_UART;  // e.g. huart1
 extern DMA_HandleTypeDef   USING_UART_DMA;    // e.g. hdma_usart1_tx
 
 // transmit buffer
-#define TX_DMA_BUFFER_SIZE   1024
 static uint16_t tx_dma_len = 0;
 static uint8_t tx_buf[TX_DMA_BUFFER_SIZE];
 static volatile uint16_t tx_head = 0;
