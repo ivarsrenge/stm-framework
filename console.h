@@ -2,7 +2,7 @@
  * console.h
  *
  *  Created on: Jun 14, 2025
- *      Author: User
+ *      Author: Ivars Renge
  */
 
 #ifndef SYS_CONSOLE_H_
@@ -11,6 +11,8 @@
 #include "core.h"
 
 // define USING_CONSOLE in your header file
+// define USING_RICH_CONSOLE to enable colors on console & apps
+
 #ifdef USING_CONSOLE
 
 typedef int (*consoleCmdHandler)(char* args);

@@ -55,6 +55,8 @@ void uartStartTx(void) {
 #ifdef USING_UART_DMA
     // 1) only start if DMA is idle and there's data
     if (HAL_DMA_GetState(&USING_UART_DMA) != HAL_DMA_STATE_READY) return;
+    if (USING_UART.gState != HAL_UART_STATE_READY) return;
+
     if (tx_head == tx_tail) return;
 
     // 2) calculate contiguous chunk
@@ -62,13 +64,20 @@ void uartStartTx(void) {
 
     // 3) remember length and kick off DMA
     tx_dma_len = len;
-    HAL_UART_Transmit_DMA(&USING_UART, &tx_buf[tx_tail], len);
+//    HAL_UART_StateTypeDef prev = huart3.gState;
+    //HAL_StatusTypeDef  ret  =
+    if (!HAL_UART_Transmit_DMA(&USING_UART, &tx_buf[tx_tail], len) == HAL_OK) {
+    	printf("DMA Failed\n");
+    }
+
+
 #endif
 }
 
 // DMA transmit complete callback
 #ifdef USING_UART_DMA
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+
+void HAL_UART_TxHalfCpltCallback(UART_HandleTypeDef *huart) { //HAL_UART_TxCpltCallback
     if (huart != &USING_UART) return;
 
     // 4) advance tail by exactly what we sent
@@ -87,6 +96,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
   }
 }
 
+
+
 // init UART “console”
 void uartInit(uint32_t msg) {
     // prime the RX interrupt (should already be set once in MX_..._Init)
@@ -95,7 +106,8 @@ void uartInit(uint32_t msg) {
 
     tTask* proc = repeat("UART_R_PR", UART_RXPROC_SPEED, &uartRxProcessor);
     proc->timeout = 1000 * ST_SS * 30;
-    proc->realtime_fail = ST_SEC;
+    proc->runAt+= ST_S10; // start after S10
+    proc->realtime_fail = ST_SEC * 10;
 
 #ifndef USING_UART_DMA
     proc = repeat("UART_T_PR", UART_TXPROC_SPEED, &uartTxProcessor);
@@ -104,6 +116,8 @@ void uartInit(uint32_t msg) {
     uartLoaded = 1;
     printf("uart loaded\n");
 #else
+    //USING_UART_DMA.XferHalfCpltCallback = &HAL_UART_TxCpltCallback;
+    //USING_UART_DMA.XferCpltCallback = &HAL_UART_TxCpltCallback;
     uartLoaded = 1;
     printf("uart DMA loaded\n");
 #endif

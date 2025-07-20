@@ -18,7 +18,9 @@
  *             HAL_UART_Receive_IT(&USING_UART, &uart_rx_byte, 1);
  *         #endif
  *
+ *    20.07.2025
  *    USING_UART_DMA hdma_usart2_tx will allow faster output
+ *    In this case - make sure __HAL_RCC_DMA1_CLK_ENABLE(); is called before UART initialization, spend a hell lot of effort to figure this out
  */
 
 #ifndef SYS_UART_H_

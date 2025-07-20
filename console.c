@@ -162,10 +162,13 @@ void consoleAbout(char* args) {
 	fillFrame(5, 3, 40, 10);
 	drawFrame(5, 3, 40, 10);
 	gotoxy(15, 3);
-    printf("About\n");
+    printf("--- < About > ---\n");
     gotoxy(7, 6);
-    printf("Firmware: %s\n", FIRMWARE_VERSION);
+    printf("Firmware: %s (%s)\n", FIRMWARE_VERSION, __TIMESTAMP__);
     gotoxy(7, 7);
+#ifdef DEBUG
+    printf("DEBUG ");
+#endif
     printf("Build: %s %s\n", __DATE__, __TIME__);
     gotoxy(7, 8);
     printf("Alive %ud %02u:%02u:%02u\n",
@@ -180,12 +183,18 @@ void consoleAbout(char* args) {
     printf("About\n");
     printf("Firmware: %s\n", FIRMWARE_VERSION);
     printf("Build: %s %s\n", __DATE__, __TIME__);
-    printf("USING_RICH_CONSOLE not defined\n");
+    printf("Warning: USING_RICH_CONSOLE not defined\n");
+#ifdef DEBUG
+    printf("Debug build\n");
+#else
+    printf("Release build\n");
+#endif
+
 #endif
 
 }
 
-
+/*
 void consoleHelp(char* args) {
 	consoleCmd* current = consoleCmdList;
 	printf("Registered console commands:\n");
@@ -198,8 +207,35 @@ void consoleHelp(char* args) {
 	}
 	printf("Total (%i)\n", cnt);
 	return;
-}
+}*/
 
+
+void consoleHelp(char* args) {
+    consoleCmd* current = consoleCmdList;
+    size_t filter_len = (args && args[0]) ? strlen(args) : 0;
+    int cnt = 0;
+
+    if (filter_len) {
+        printf("Filtered \"%s\":\n", args);
+    } else {
+        printf("Available:\n");
+    }
+
+    while (current) {
+        if (!filter_len || strncmp(current->name, args, filter_len) == 0) {
+            printf(" - %s (%p)\n", current->name, (void*)current->handler);
+            cnt++;
+        }
+        current = current->next;
+        kernel_process(1);
+    }
+
+    if (filter_len) {
+        printf("Matching: %d\n", cnt);
+    } else {
+        printf("Total: %d\n", cnt);
+    }
+}
 
 #endif
 
