@@ -175,7 +175,7 @@ static consoleCmd* consoleCmdList = NULL;
 
 void consoleInit(uint32_t msg) {
 	consoleRegister("about", &consoleAbout);
-	consoleRegister("gui", &consoleGui);
+//	consoleRegister("gui", &consoleGui);
 	consoleRegister("help", &consoleHelp);
 	consoleRegister("taskreset", &consoleTasksReset);
 	consoleRegister("tasks", &consoleTasks);
@@ -188,7 +188,7 @@ void consoleInit(uint32_t msg) {
 	printf("console loaded\n");
 
 #ifdef USING_RICH_CONSOLE
-	repeat("GUI", ST_SEC, &consoleAppDrawAll);
+	//repeat("GUI", ST_SEC, &consoleAppDrawAll);
 #endif
 }
 
