@@ -175,7 +175,7 @@ static consoleCmd* consoleCmdList = NULL;
 
 void consoleInit(uint32_t msg) {
 	consoleRegister("about", &consoleAbout);
-	consoleRegister("gui", &consoleGui);
+	//consoleRegister("gui", &consoleGui);
 	consoleRegister("help", &consoleHelp);
 	consoleRegister("taskreset", &consoleTasksReset);
 	consoleRegister("tasks", &consoleTasks);

@@ -100,17 +100,7 @@ void consoleOff(char* args);
 
 
 	#ifdef USING_RICH_CONSOLE
-		enum ConsoleColor {
-			BLACK = 0,
-			RED,
-			GREEN,
-			YELLOW,
-			BLUE,
-			MAGENTA,
-			CYAN,
-			WHITE,
-			DEFAULT_COLOR = 9
-		};
+
 
 	typedef struct consoleApp {
 		const char           *name;       // unique identifier
@@ -138,7 +128,17 @@ void consoleOff(char* args);
 	#endif
 
 
-
+	enum ConsoleColor {
+		BLACK = 0,
+		RED,
+		GREEN,
+		YELLOW,
+		BLUE,
+		MAGENTA,
+		CYAN,
+		WHITE,
+		DEFAULT_COLOR = 9
+	};
 	void setTextColor(enum ConsoleColor color);
 	void setBackgroundColor(enum ConsoleColor color);
 

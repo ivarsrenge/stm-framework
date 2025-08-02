@@ -84,15 +84,10 @@ __attribute__((weak))  void onUsbError(uint32_t flag) {
 // run from main.c after GPIO init
 extern USBD_HandleTypeDef hUsbDeviceFS;
 void resetUSBPort() {
-  /* 1) stop USB device (soft-disconnect) */
-	USBD_Stop(&hUsbDeviceFS);
 
-	/* 2) wait for host to detect detach */
-	HAL_Delay(10);
 
-	/* 3) start USB device again (soft-connect) */
-	USBD_Start(&hUsbDeviceFS);
-	/*
+#if defined(STM32F3)
+
   // 1. Enable GPIOA clock (should already be enabled)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
@@ -115,8 +110,17 @@ void resetUSBPort() {
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF14_USB;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);*/
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+#else
+  /* 1) stop USB device (soft-disconnect) */
+	USBD_Stop(&hUsbDeviceFS);
 
+	/* 2) wait for host to detect detach */
+	HAL_Delay(10);
+
+	/* 3) start USB device again (soft-connect) */
+	USBD_Start(&hUsbDeviceFS);
+#endif
 
 }
 
