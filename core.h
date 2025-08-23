@@ -51,6 +51,8 @@
 	// ========== types =====================
 	typedef struct tTask tTask; // alias
 
+	typedef uint8_t (*taskFn)(int arg);   // 0 = normal; non-zero = skip timeout check
+
 
 
 	struct tTask {
@@ -63,7 +65,7 @@
 		unsigned char error_flag;
 		uint32_t counter;
 		uint64_t duration;
-		void (*callback)(uint32_t);
+		taskFn callback;
 		 tTask *next;
 	};
 
@@ -105,13 +107,13 @@
 	void kernel_process(int); // park in long functions to allow simultanious tasks
 	void osDelay(uint32_t time); // can be used on driver inicialization to avoid halting...
 
-	tTask* taskSchedule(char* name, int after, int type, void (*callback)(uint32_t));
+	tTask* taskSchedule(char* name, int after, int type, taskFn callback);
 
 	// remove all tasks by handler function, returns count
-	uint32_t taskRemove(void (*callback)(uint32_t));
+	uint32_t taskRemove(taskFn callback);
 
 	// check if task exists, returns number of instances of handler
-	uint32_t taskExists(void (*callback)(uint32_t));
+	uint32_t taskExists(taskFn callback);
 
 	// add message and params to task
 	void taskSetData(tTask* task, uint32_t msg);

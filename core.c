@@ -98,6 +98,7 @@ __attribute__((weak))  void onTaskError(tTask* task, uint32_t msg, uint32_t time
 	switch(msg){
 		case TE_REALTIME:
 			printf(" missed realtime limits by %ims", (int)time);
+
 			break;
 		case TE_TIMEOUT:
 			printf(" executes too long - %ius", (int)time);
@@ -109,7 +110,7 @@ __attribute__((weak))  void onTaskError(tTask* task, uint32_t msg, uint32_t time
 
 
 void kernel_process(int depth) {
-	uint8_t (*handler)(uint32_t);
+	taskFn handler;
 	tTask *current = &taskQueue;
 	tTask *prev;
 	uint32_t beforeT;
@@ -206,7 +207,7 @@ uint32_t usTimerRead(void) {
 
 
 
-tTask* taskSchedule(char *name, int after, int type, void (*handler)()) {
+tTask* taskSchedule(char *name, int after, int type, taskFn handler) {
 	if (type & TT_ONCE) taskRemove(handler);
 	tTask *current = &taskQueue;
 
@@ -247,7 +248,7 @@ tTask* taskSchedule(char *name, int after, int type, void (*handler)()) {
 
 
 
-uint32_t taskRemove(void (*handler)()) {
+uint32_t taskRemove(taskFn handler) {
 	tTask *current = &taskQueue;
 	tTask *prev;
 	uint32_t count = 0;
@@ -265,7 +266,7 @@ uint32_t taskRemove(void (*handler)()) {
 	return count;
 }
 
-uint32_t taskExists(void (*handler)()) {
+uint32_t taskExists(taskFn handler) {
 	tTask *current = &taskQueue;
 	uint32_t count = 0;
 	while (current->next != NULL) {
@@ -290,8 +291,8 @@ void consoleTasks(char* args) {
 
 		printf("-[%s] runAt=%lu, wait=%i ", current->name, (unsigned long int)current->runAt, abs(uwTick - current->runAt));
 		if (current->error_flag) {
-			if (current->error_flag | TE_REALTIME) printf("REALTIME %i ",(int)current->realtime_fail);
-			if (current->error_flag | TE_TIMEOUT) printf("FROZE %i ", (int)current->timeout);
+			if (current->error_flag & TE_REALTIME) printf("REALTIME %i ",(int)current->realtime_fail);
+			if (current->error_flag & TE_TIMEOUT) printf("FROZE %i ", (int)current->timeout);
 		}
 		if (current->counter) {
 			printf("Cnt: %i ", (int)current->counter);
