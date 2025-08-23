@@ -164,16 +164,16 @@ void uartRxProcessor(uint32_t param) {
 }
 
 __attribute__((weak)) uint8_t onCommand(uint32_t param) {
-	setTextColor(YELLOW);
+	//setTextColor(YELLOW);
     printf("uart> %s\n", cmd);
-	setTextColor(DEFAULT_COLOR);
+//	setTextColor(DEFAULT_COLOR);
     return 0;
 }
 
 __attribute__((weak)) void onUartError(uint32_t flag) {
-	setTextColor(RED);
+	//setTextColor(RED);
     printf("Uart Error %u\n", flag);
-	setTextColor(DEFAULT_COLOR);
+//	setTextColor(DEFAULT_COLOR);
 }
 
 
