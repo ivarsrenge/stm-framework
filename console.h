@@ -95,6 +95,7 @@ void consoleTasks(char* args);
 void consoleTasksReset(char* args);
 void consoleOn(char* args);
 void consoleOff(char* args);
+void aliveCheck();
 
 
 

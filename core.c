@@ -317,6 +317,22 @@ void consoleTasksReset(char* args) {
 		current = current->next;
 	}
 }
+
+uint32_t lastAliveCheck = 0;
+void aliveCheck() {
+    if (uwTick - lastAliveCheck < ST_SEC * 5) return;  // Once per 5 second
+    lastAliveCheck = uwTick;
+
+    uint32_t count = 0;
+    tTask* current = taskQueue.next;
+    while (current) {
+        count++;
+        current = current->next;
+    }
+
+    printf("[ALIVE] T:%lu Tasks:%lu Exec:%lu\n",
+           uwTick/1000, count, tasksTotalExecuted);
+}
 #endif
 
 
