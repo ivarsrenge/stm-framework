@@ -2,14 +2,13 @@
  * core.c
  *
  *  Created on: Jun 8, 2025
- *      Author: User
+ *      Author: Ivars
  *
  *
  *      Your code shows a functional and relatively compact custom task scheduler for STM32, and you're using solid embedded development practices. However, there's room to **enhance readability, safety, maintainability, and clarity**. Here's a **code quality evaluation** broken down by category:
 
 ---
 */
-
 
 #include "core.h"
 
